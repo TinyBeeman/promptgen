@@ -96,6 +96,20 @@ def verbose_level():
 class PGException(Exception):
     pass
 
+class PromptGenProvider():
+    @classmethod
+    def get_list(self, list_name):
+        return []
+
+    @classmethod
+    def get_list_count(self, list_name):
+        return 0
+    
+    @classmethod
+    def get_variable(self, var_name):
+        return None
+    
+
 class GlobalState:
     m_artist = None
     m_medium = None
@@ -189,12 +203,24 @@ class ParseNode:
                 min = int(args[0])
                 max = int(args[1])
                 return random.randint(min, max)
+            case 'rngi':
+                min = int(args[0])
+                max = int(args[1]+1)
+                step = 1
+                if (len(args) > 2):
+                    step = args[2]
+                return range(min, max, step)     
             case 'update_c':
                 return args[0]
             case 'update_b':
                 return args[0]
+            case 'pad':
+                s:str = str(args[0])
+                pad:int = args[1]
+                return s.zfill(pad)
             case _:
                 return f"{id} Function Not Yet Implemented"
+
     
     def get_value_no_iteration(self, state: GlobalState, global_iteration = 0, stack_depth=0 ):
         if (self.m_last_value != None):
