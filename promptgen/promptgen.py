@@ -15,7 +15,6 @@
 # rndi(min, max, [tag_name]) returns a value (as string) from min to max (includes min and max), optimized version of randa(rngi(min, max))
 # rnda(array_cmd, [tag_name]) returns a random value from an array
 # nexta(array_cmd, [tag_name]) returns the next item in an array, starting with 0, wrapping around if needed
-# update_i( value_cmd, [tag_name] ) calls cmd whenever prompt index changes (aka, every image)
 # update_b( value_cmd, [tag_name] ) calls cmd for every new batch, previous value otherwise. (same as update_c( cmd, batch_size ))
 # update_c( value_cmd, c ) calls cmd whenever the (prompt count % c) == 0, previous value otherwise
 # string: Any string, including spaces can be a value. We will attempt to convert it to a number if needed.
