@@ -50,6 +50,10 @@ tokens = [
     'STRING',
     'ID',
     'COMMA',
+    'PLUS',
+    "MULT",
+    "DIV",
+    "MOD"
 ] + list(reserved.values())
 
 t_LPAREN = r'\('
@@ -58,6 +62,11 @@ t_STRING = r'".*?"'
 t_LBRACKET = r'\['
 t_RBRACKET = r'\]'
 t_COMMA = r','
+t_PLUS = r'\+'
+t_MINUS = r'-'
+t_MULT = r'\*'
+t_DIV = r'/'
+t_MOD = r'%'
 
 
 def t_NUMBER(t):
@@ -84,7 +93,6 @@ def t_newline(t):
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
-
 
 g_debug_lexer = False
 g_lexer = lex.lex()
@@ -259,7 +267,7 @@ class ParseNode:
                     match self.m_leaf:
                         case 'rndi' | 'rnda' | 'nexta' | 'var' | 'save_var':
                             self.m_is_constant = False
-                            self.m_is_constant
+                            return self.m_is_constant
                 case "id":
                     self.m_is_constant = False
                     return self.m_is_constant
@@ -298,12 +306,29 @@ class ParseNode:
                 res = processed_children
             case "array":
                 res = processed_children[0]
+            case "binop":
+                try:
+                    print(f"{type(processed_children[0])} {self.m_leaf} {type(processed_children[1])}")
+                    match self.m_leaf:
+                        case "+":
+                            res = processed_children[0] + processed_children[1]
+                        case "-":
+                            res = processed_children[0] - processed_children[1]
+                        case "*":
+                            res = processed_children[0] * processed_children[1]
+                        case "/":
+                            res = processed_children[0] / processed_children[1]
+                        case "%":
+                            res = processed_children[0] % processed_children[1]
+                except Exception as ex:
+                    res = f"FAILED{self.m_leaf}"
+                    print(f"Failed Binary Operation: {self.m_leaf}, Exception: {str(ex)}")
             case "id":
                 match self.m_leaf:
                     case "batch_size":
                         res = state.batch_size
                     case "batch_count":
-                        res =  state.batch_count
+                        res = state.batch_count
                     case "iteration":
                         res = global_iteration
                     case "prompt_count":
@@ -501,6 +526,27 @@ def p_arglist_args(p):
 def p_arglist_expr(p):
     'arglist : expression'
     p[0] = ParseNode("arglist", [ p[1] ])
+
+# Math
+def p_expression_add(p):
+    'expression : expression PLUS expression'
+    p[0] = ParseNode("binop", [ p[1], p[3] ], "+")
+
+def p_expression_sub(p):
+    'expression : expression MINUS expression'
+    p[0] = ParseNode("binop", [ p[1], p[3] ], "-")
+
+def p_expression_mult(p):
+    'expression : expression MULT expression'
+    p[0] = ParseNode("binop", [ p[1], p[3] ], "*")
+
+def p_expression_div(p):
+    'expression : expression DIV expression'
+    p[0] = ParseNode("binop", [ p[1], p[3] ], "/")
+
+def p_expression_mod(p):
+    'expression : expression MOD expression'
+    p[0] = ParseNode("binop", [ p[1], p[3] ], "%")
 
 # Arrays
 

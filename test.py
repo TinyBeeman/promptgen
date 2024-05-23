@@ -49,8 +49,15 @@ def test():
             r'update_c(save_var("sv-test", pad(rndi(0,100), 3)), 2)',
             r'var("sv-test")',
             r'var("test_var_255")'
-            ]
-        }
+        ],
+        "math": [
+            r'1 + 1',
+            r'3 - 4',
+            r'10 / 5',
+            r'2 * 2',
+            r'iteration % 5'
+        ]
+    }
         
     for test_name in test_prompts.keys():
         template = ''
