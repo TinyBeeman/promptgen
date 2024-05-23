@@ -4,4 +4,4 @@
 
 __version__ = '2024.05.21.0001'
 
-from .promptgen import generate_prompts
+from .promptgen import generate_prompts, CallbackHandler

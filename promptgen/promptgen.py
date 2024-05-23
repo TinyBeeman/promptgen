@@ -96,31 +96,25 @@ def verbose_level():
 class PGException(Exception):
     pass
 
-class PromptGenProvider():
-    @classmethod
+class CallbackHandler:
     def get_list(self, list_name):
         return []
 
-    @classmethod
     def get_list_count(self, list_name):
         return 0
     
-    @classmethod
     def get_variable(self, var_name):
         return None
     
 
 class GlobalState:
-    m_artist = None
-    m_medium = None
     m_batch_size = 1
     m_batch_count = 1
     m_prompt_count = 1
     m_vars = None
+    m_callback_handlers = []
 
     def __init__(self):
-        self.m_artist = [ "Van Gogh", "Norman Rockwell", "Alphonse Mucha", "Edward Hopper" ]
-        self.m_medium = [ "Oil Painting", "Sculpture", "Photo", "Watercolor", "Acrylic"]
         self.m_vars = {} 
 
     @property
@@ -160,16 +154,34 @@ class GlobalState:
     def set_var(self, key, value):
         self.m_vars[key] = value
     
-    def get_var(self, key):
-        return self.m_vars[key]
+    def get_var(self, name):
+        if (name in self.m_vars.keys()):
+            return self.m_vars[name]
+        h:CallbackHandler
+        for h in self.m_callback_handlers:
+            v = h.get_variable(name)
+            if (v is not None):
+                return v
+        return None
     
+    def get_list_count(self, name):
+        h:CallbackHandler
+        for h in self.m_callback_handlers:
+            cnt = h.get_list_count(name)
+            if (cnt > 0):
+                return cnt
+        return 0
+
     def get_list(self, name):
-        match name:
-            case "artist":
-                return self.m_artist
-            case "medium":
-                return self.m_medium
-        return [ "Missing List " + name ]
+        h:CallbackHandler
+        for h in self.m_callback_handlers:
+            lst = h.get_list(name)
+            if (lst and len(lst) > 0):
+                return lst
+        return []
+    
+    def add_callback_handler(self, handler: CallbackHandler):
+        self.m_callback_handlers.append(handler)
 
 class ParseNode:
     m_children = None
@@ -188,7 +200,7 @@ class ParseNode:
     def insert_child(self, index, child):
         self.m_children.insert(index, child)
 
-    def run_func(self, id, args, global_iteration, state):
+    def run_func(self, id, args, global_iteration, state: GlobalState):
         match id.lower():
             case 'nexta':
                 # nexta(array_cmd, [tag_name]) returns the next item in an array, starting with 0, wrapping around if needed
@@ -218,6 +230,17 @@ class ParseNode:
                 s:str = str(args[0])
                 pad:int = args[1]
                 return s.zfill(pad)
+            case 'var':
+                name:str = str(args[0])
+                v = state.get_var(name)
+                if (v is None):
+                    v = ""
+                return v
+            case 'save_var':
+                name:str = str(args[0])
+                val = args[1]
+                state.set_var(name, val)
+                return val
             case _:
                 return f"{id} Function Not Yet Implemented"
 
@@ -234,7 +257,7 @@ class ParseNode:
             match self.m_type:
                 case "func":
                     match self.m_leaf:
-                        case 'rndi' | 'rnda' | 'nexta':
+                        case 'rndi' | 'rnda' | 'nexta' | 'var' | 'save_var':
                             self.m_is_constant = False
                             self.m_is_constant
                 case "id":
@@ -378,7 +401,6 @@ class ParseNodeRoot(ParseNode):
         # foreach( array_cmd, [repeat = 1], [index = 0] )
         if self.m_type == "foreach":
             rg_args = self.get_foreach_args(state)
-            print(rg_args[0])
             self.m_foreach_list_count = len(rg_args[0])
             self.m_foreach_repeat = rg_args[1]
             self.m_index = rg_args[2]
@@ -653,9 +675,9 @@ class TemplateParser:
         for c in self.m_codes:
             c.get_parse_root().preprocess(self.m_state)
         
-        self.m_codes.sort(key=lambda code: code.get_parse_root().sort_key, reverse = True )
+        self.m_codes.sort(key=lambda code: code.get_parse_root().sort_key, reverse = False )
         
-        for c in self.m_codes:
+        for c in self.m_codes[:-1]:
             rootnode:ParseNodeRoot = c.get_parse_root()
             if rootnode.foreach_list_count > 0:
                 # Each successive for-each needs to hold its value as the previous for-each's iterate:
@@ -677,6 +699,9 @@ class TemplateParser:
             raw = "{{" + c.get_raw_code() + "}}"
             output = output.replace(raw, str(res))
         return output
+    
+    def add_callback_handler(self, callback_handler: CallbackHandler):
+        self.m_state.add_callback_handler(callback_handler)
 
     def produce_prompt(self, iteration):
         output = self.m_raw
@@ -695,10 +720,11 @@ class TemplateParser:
         return s
 
 
-def generate_prompts(template: str, batch_count = 1, batch_size = 1):
+def generate_prompts(template: str, batch_count = 1, batch_size = 1, callback_handler: CallbackHandler = None):
     parser = TemplateParser()
     parser.batch_size = batch_size
     parser.batch_count = batch_count
     parser.raw_prompt = template
+    parser.add_callback_handler(callback_handler)
     return parser.get_all_prompts()
 
