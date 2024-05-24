@@ -299,16 +299,15 @@ class ParseNode:
 
     def process_this(self, processed_children, state: GlobalState, global_iteration, stack_depth):
         res = None
-        match self.m_type:
-            case "func":
-                res = self.run_func(self.m_leaf, processed_children[0], global_iteration, state)
-            case "arglist":
-                res = processed_children
-            case "array":
-                res = processed_children[0]
-            case "binop":
-                try:
-                    print(f"{type(processed_children[0])} {self.m_leaf} {type(processed_children[1])}")
+        try:
+            match self.m_type:
+                case "func":
+                    res = self.run_func(self.m_leaf, processed_children[0], global_iteration, state)
+                case "arglist":
+                    res = processed_children
+                case "array":
+                    res = processed_children[0]
+                case "binop":                    
                     match self.m_leaf:
                         case "+":
                             res = processed_children[0] + processed_children[1]
@@ -320,33 +319,37 @@ class ParseNode:
                             res = processed_children[0] / processed_children[1]
                         case "%":
                             res = processed_children[0] % processed_children[1]
-                except Exception as ex:
-                    res = f"FAILED{self.m_leaf}"
-                    print(f"Failed Binary Operation: {self.m_leaf}, Exception: {str(ex)}")
-            case "id":
-                match self.m_leaf:
-                    case "batch_size":
-                        res = state.batch_size
-                    case "batch_count":
-                        res = state.batch_count
-                    case "iteration":
-                        res = global_iteration
-                    case "prompt_count":
-                        res = state.prompt_count
-                    case _:
-                        res = self.m_leaf
-            case "constant":
-                res = self.m_leaf    
-            case "list":
-                res = state.get_list(processed_children[0].lower())
-            case "foreachargs":
-                res = processed_children[0]
-            case "passthru":
-                res = processed_children[0]
-            case _:
-                print(f"Unknown Type {self.m_type}")
-                res = processed_children[0]
-
+                case "unop":
+                    match self.m_leaf:
+                        case "-":
+                            res = -1 * processed_children[0]
+                case "id":
+                    match self.m_leaf:
+                        case "batch_size":
+                            res = state.batch_size
+                        case "batch_count":
+                            res = state.batch_count
+                        case "iteration":
+                            res = global_iteration
+                        case "prompt_count":
+                            res = state.prompt_count
+                        case _:
+                            res = self.m_leaf
+                case "constant":
+                    res = self.m_leaf    
+                case "list":
+                    res = state.get_list(processed_children[0].lower())
+                case "foreachargs":
+                    res = processed_children[0]
+                case "passthru":
+                    res = processed_children[0]
+                case _:
+                    print(f"Unknown Type {self.m_type}")
+                    res = ""
+        except Exception as ex:
+            res = f"FAILED{self.m_leaf}"
+            print(f"Failed Binary Operation: {self.m_leaf}, Exception: {str(ex)}")
+ 
         return res
 
 
@@ -494,6 +497,7 @@ def p_statement_expr(p):
     p[0] = ParseNodeRoot("passthru", [ p[1] ] )
 
 # foreach( array_cmd, [repeat = 1], [index = 0] )
+
 def p_statement_foreach(p):
     'statement : FOREACH LPAREN foreachargs RPAREN'
     p[0] = ParseNodeRoot("foreach", [ p[3] ] )
@@ -510,9 +514,17 @@ def p_foreachargs_threearg(p):
     'foreachargs : expression COMMA NUMBER COMMA NUMBER'
     p[0] = ParseNode('foreachargs', [ p[1], ParseNode("constant", [], p[3]), ParseNode("constant", [], p[5] ) ] )
 
+# expressions
+
 def p_expression_id(p):
     'expression : ID'
     p[0] = ParseNode("id", [], p[1])
+
+def p_expression_parenthesis(p):
+    'expression : LPAREN expression RPAREN'
+    p[0] = ParseNode("passthru", [ p[2] ])
+
+# function calls
 
 def p_expression_func(p):
     'expression : ID LPAREN arglist RPAREN'
@@ -528,25 +540,17 @@ def p_arglist_expr(p):
     p[0] = ParseNode("arglist", [ p[1] ])
 
 # Math
-def p_expression_add(p):
-    'expression : expression PLUS expression'
-    p[0] = ParseNode("binop", [ p[1], p[3] ], "+")
+def p_expression_binop(p):
+    '''expression : expression PLUS expression
+                 | expression MINUS expression
+                 | expression MULT expression
+                 | expression DIV expression
+                 | expression MOD expression'''
+    p[0] = ParseNode("binop", [ p[1], p[3] ], p[2])
 
-def p_expression_sub(p):
-    'expression : expression MINUS expression'
-    p[0] = ParseNode("binop", [ p[1], p[3] ], "-")
-
-def p_expression_mult(p):
-    'expression : expression MULT expression'
-    p[0] = ParseNode("binop", [ p[1], p[3] ], "*")
-
-def p_expression_div(p):
-    'expression : expression DIV expression'
-    p[0] = ParseNode("binop", [ p[1], p[3] ], "/")
-
-def p_expression_mod(p):
-    'expression : expression MOD expression'
-    p[0] = ParseNode("binop", [ p[1], p[3] ], "%")
+def p_expression_unop(p):
+    'expression : MINUS expression'
+    p[0] = ParseNode("unop", [ p[2] ], p[1])
 
 # Arrays
 
@@ -573,25 +577,26 @@ def p_constant_string(p):
     'constant : STRING'
     p[0] = ParseNode("constant", [], p[1].strip('"') )
 
-def p_constant_neg_number(p):
-    'constant : MINUS NUMBER'
-    p[0] = ParseNode("constant", [], -1 * p[1])
-
 def p_constant_number(p):
     'constant : NUMBER'
     p[0] = ParseNode("constant", [], p[1] )
 
-
 def p_error(p):
     print(f"Syntax error in input: {p}")
+
+
+#precedence
+
+precedence = (
+    ('left', 'PLUS', 'MINUS'),
+    ('left', 'MULT', 'DIV'),
+)
 
 # Build the parser
 g_parser = yacc.yacc()
 
-
-
 class CodeSpan:
-    m_raw = ""
+    m_raw_span = ""
     m_tokens = None
     m_tree:ParseNodeRoot = None
     m_db = None
@@ -601,14 +606,14 @@ class CodeSpan:
         global g_lexer
         global g_debug_lexer
 
-        self.m_raw = raw_code
+        self.m_raw_span = raw_code
         self.m_tokens = []
         self.m_tree = None
         self.m_orig_index = orig_index
 
     def get_tokens(self):        
         if (len(self.m_tokens) == 0):
-            g_lexer.input(self.m_raw)
+            g_lexer.input(self.m_raw_span)
             while True:
                 tok = g_lexer.token()
                 if not tok:
@@ -618,10 +623,10 @@ class CodeSpan:
         return self.m_tokens
     
     def get_raw_code(self):
-        return self.m_raw
+        return self.m_raw_span
     
     def describe_self(self):
-        s = f"Raw Code: {self.m_raw}\n" 
+        s = f"Raw Code: {self.m_raw_span}\n" 
         for t in self.m_tokens:
             s += f"{str(t)};"
         s += "\n"
@@ -631,10 +636,10 @@ class CodeSpan:
         global g_parser
         if (self.m_tree is None):
             #try:
-                self.m_tree = g_parser.parse(self.m_raw)
+                self.m_tree = g_parser.parse(self.m_raw_span)
                 self.m_tree.original_index = self.m_orig_index
             #except Exception as ex:
-            #    print(f"Parse Exception parsing {self.m_raw}")
+            #    print(f"Parse Exception parsing {self.m_raw_span}")
             #    print(type(ex))
             #    print(ex.args)
             #    print(ex)
@@ -668,7 +673,7 @@ class Prompt:
 
 class TemplateParser:
     m_codes: list[CodeSpan]
-    m_raw: str
+    m_raw_template: str
     m_state: GlobalState = None
 
     def __init__(self):
@@ -680,16 +685,16 @@ class TemplateParser:
     
     @property
     def raw_prompt(self):
-        return self.m_raw
+        return self.m_raw_template
     
     @raw_prompt.setter
     def raw_prompt(self, value):
-        self.m_raw = value
+        self.m_raw_template = value
         self.m_codes = []
         # Add strings between {{ and }} to codes
         rx = r'{{(?P<code>([^}]|}[^}])*)}}'
         i = 0
-        for m in re.finditer(rx, self.m_raw):
+        for m in re.finditer(rx, self.m_raw_template):
             c = m.group('code')
             if (c is not None):
                 self.m_codes.append(CodeSpan(c, i))
@@ -738,8 +743,14 @@ class TemplateParser:
             prompts.append(self.produce_prompt(i))
         return prompts
 
+    def debug_template(self):
+        output = f"------\nDEBUGGING {self.m_raw_template}\n------\n"
+        output += self.get_token_prompt()
+        output += "------"
+        return output
+    
     def get_token_prompt(self):
-        output = self.m_raw
+        output = self.m_raw_template
         for c in self.m_codes:
             res = " ".join(str(x) for x in c.get_tokens())
             raw = "{{" + c.get_raw_code() + "}}"
@@ -750,7 +761,7 @@ class TemplateParser:
         self.m_state.add_callback_handler(callback_handler)
 
     def produce_prompt(self, iteration):
-        output = self.m_raw
+        output = self.m_raw_template
         for c in self.m_codes:
             res = c.get_parse_root().process(self.m_state, iteration)
             raw = "{{" + c.get_raw_code() + "}}"
@@ -759,7 +770,7 @@ class TemplateParser:
 
     def describe_self(self):
         s = "PARSER:\n"
-        s += f"Raw Prompt: {self.m_raw}\n"
+        s += f"Raw Prompt: {self.m_raw_template}\n"
         s += f"CODES\n----\n"
         for c in self.m_codes:
             s += c.describe_self()
@@ -774,3 +785,8 @@ def generate_prompts(template: str, batch_count = 1, batch_size = 1, callback_ha
     parser.add_callback_handler(callback_handler)
     return parser.get_all_prompts()
 
+def debug_template(template: str, callback_handler: CallbackHandler = None):
+    parser = TemplateParser()
+    parser.raw_prompt = template
+    parser.add_callback_handler(callback_handler)
+    return parser.debug_template()
