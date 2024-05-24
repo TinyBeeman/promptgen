@@ -31,4 +31,14 @@ The parser will walk through the current list of prompts, and repeat each item o
 expands will be processed in the order of the indexes, then in order they appear in the list.
 
 # Basic Math
-{{2 + 3}} will generate 5, etc. Correct operator precedence in NYI
+{{2 + 3}} will generate 5, etc.
+
+# Tests:
+To run tests:
+python .\test.py
+
+To change tests, update test.json, then run:
+python .\test.py --save_tests
+Finally, copy test_output.json to test.json and run
+python .\test.py
+To verify
