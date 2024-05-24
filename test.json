@@ -1,0 +1,49 @@
+{
+    "basic": {
+        "batch_count": 3,
+        "batch_size": 4,
+        "spans": [
+            "iteration",
+            "update_c(pad(nexta(rngi(0,100)), 3), 2)",
+            "nexta(rngi(1,5))",
+            "update_b(nexta(list(\"test_list\")))",
+            "foreach([\"a\", \"b\", \"c\", \"d\"], 2)"
+        ],
+        "expected": "iteration: 0; update_c(pad(nexta(rngi(0,100)), 3), 2): 000; nexta(rngi(1,5)): 1; update_b(nexta(list(\"test_list\"))): item-a; foreach([\"a\", \"b\", \"c\", \"d\"], 2): a; \niteration: 1; update_c(pad(nexta(rngi(0,100)), 3), 2): 000; nexta(rngi(1,5)): 2; update_b(nexta(list(\"test_list\"))): item-a; foreach([\"a\", \"b\", \"c\", \"d\"], 2): a; \niteration: 2; update_c(pad(nexta(rngi(0,100)), 3), 2): 001; nexta(rngi(1,5)): 3; update_b(nexta(list(\"test_list\"))): item-a; foreach([\"a\", \"b\", \"c\", \"d\"], 2): b; \niteration: 3; update_c(pad(nexta(rngi(0,100)), 3), 2): 001; nexta(rngi(1,5)): 4; update_b(nexta(list(\"test_list\"))): item-a; foreach([\"a\", \"b\", \"c\", \"d\"], 2): b; \niteration: 4; update_c(pad(nexta(rngi(0,100)), 3), 2): 002; nexta(rngi(1,5)): 5; update_b(nexta(list(\"test_list\"))): item-b; foreach([\"a\", \"b\", \"c\", \"d\"], 2): c; \niteration: 5; update_c(pad(nexta(rngi(0,100)), 3), 2): 002; nexta(rngi(1,5)): 1; update_b(nexta(list(\"test_list\"))): item-b; foreach([\"a\", \"b\", \"c\", \"d\"], 2): c; \niteration: 6; update_c(pad(nexta(rngi(0,100)), 3), 2): 003; nexta(rngi(1,5)): 2; update_b(nexta(list(\"test_list\"))): item-b; foreach([\"a\", \"b\", \"c\", \"d\"], 2): d; \niteration: 7; update_c(pad(nexta(rngi(0,100)), 3), 2): 003; nexta(rngi(1,5)): 3; update_b(nexta(list(\"test_list\"))): item-b; foreach([\"a\", \"b\", \"c\", \"d\"], 2): d; \niteration: 8; update_c(pad(nexta(rngi(0,100)), 3), 2): 004; nexta(rngi(1,5)): 4; update_b(nexta(list(\"test_list\"))): item-c; foreach([\"a\", \"b\", \"c\", \"d\"], 2): a; \niteration: 9; update_c(pad(nexta(rngi(0,100)), 3), 2): 004; nexta(rngi(1,5)): 5; update_b(nexta(list(\"test_list\"))): item-c; foreach([\"a\", \"b\", \"c\", \"d\"], 2): a; \niteration: 10; update_c(pad(nexta(rngi(0,100)), 3), 2): 005; nexta(rngi(1,5)): 1; update_b(nexta(list(\"test_list\"))): item-c; foreach([\"a\", \"b\", \"c\", \"d\"], 2): b; \niteration: 11; update_c(pad(nexta(rngi(0,100)), 3), 2): 005; nexta(rngi(1,5)): 2; update_b(nexta(list(\"test_list\"))): item-c; foreach([\"a\", \"b\", \"c\", \"d\"], 2): b; "
+    },
+    "vars": {
+        "batch_count": 2,
+        "batch_size": 4,
+        "spans": [
+            "iteration",
+            "update_c(save_var(\"sv-test\", pad(nexta(rngi(0,100)), 3)), 2)",
+            "var(\"sv-test\")",
+            "var(\"test_var_255\")"
+        ],
+        "expected": "iteration: 0; update_c(save_var(\"sv-test\", pad(nexta(rngi(0,100)), 3)), 2): 000; var(\"sv-test\"): 000; var(\"test_var_255\"): 255; \niteration: 1; update_c(save_var(\"sv-test\", pad(nexta(rngi(0,100)), 3)), 2): 000; var(\"sv-test\"): 000; var(\"test_var_255\"): 255; \niteration: 2; update_c(save_var(\"sv-test\", pad(nexta(rngi(0,100)), 3)), 2): 001; var(\"sv-test\"): 001; var(\"test_var_255\"): 255; \niteration: 3; update_c(save_var(\"sv-test\", pad(nexta(rngi(0,100)), 3)), 2): 001; var(\"sv-test\"): 001; var(\"test_var_255\"): 255; \niteration: 4; update_c(save_var(\"sv-test\", pad(nexta(rngi(0,100)), 3)), 2): 002; var(\"sv-test\"): 002; var(\"test_var_255\"): 255; \niteration: 5; update_c(save_var(\"sv-test\", pad(nexta(rngi(0,100)), 3)), 2): 002; var(\"sv-test\"): 002; var(\"test_var_255\"): 255; \niteration: 6; update_c(save_var(\"sv-test\", pad(nexta(rngi(0,100)), 3)), 2): 003; var(\"sv-test\"): 003; var(\"test_var_255\"): 255; \niteration: 7; update_c(save_var(\"sv-test\", pad(nexta(rngi(0,100)), 3)), 2): 003; var(\"sv-test\"): 003; var(\"test_var_255\"): 255; "
+    },
+    "math": {
+        "batch_size": 1,
+        "batch_count": 1,
+        "spans": [
+            "1 + 1",
+            "3 - 4",
+            "10 / 2",
+            "2 * 2",
+            "13 % 5"
+        ],
+        "expected": "1 + 1: 2; 3 - 4: -1; 10 / 2: 5.0; 2 * 2: 4; 13 % 5: 3; "
+    },
+    "precedence": {
+        "batch_size": 1,
+        "batch_count": 1,
+        "spans": [
+            "10 / 2 + 3",
+            "3 + 10 / 2",
+            "(10 / 2) + 3",
+            "10 / (2 + 3)",
+            "10 / -(2 + 3)"
+        ],
+        "expected": "10 / 2 + 3: 8.0; 3 + 10 / 2: 8.0; (10 / 2) + 3: 8.0; 10 / (2 + 3): 2.0; 10 / -(2 + 3): -2.0; "
+    }
+}
