@@ -50,11 +50,11 @@ def basic_tests(debug=False, output_tests=False):
     test_prompts = json.loads(file_contents)
 
     handler = TestHandler()
-    errors = ""
+    failures = []
     for test_name in test_prompts.keys():
         test = test_prompts[test_name]
         template = ''
-        print(f"Running {test_name}")
+        print(f"Running \"{test_name}\" test")
         for c in test["spans"]:
             template += f'{c}: ' + "{{" + c + "}}; "
         if (debug):
@@ -69,13 +69,18 @@ def basic_tests(debug=False, output_tests=False):
                 # print("DIFF")
                 expected = test["expected"]
                 if (expected == actual):
-                    print(f"{test_name} test succeeded.")
+                    print(f"\"{test_name}\" test succeeded.")
                 else:
-                    print(f"{test_name} failed:")
+                    fail_str = f"\"{test_name}\" test failed:\n"
                     d = difflib.Differ()
-                    diffs = list(difflib.unified_diff(actual.splitlines(keepends=True), test["expected"].splitlines(keepends=True)))
-                    dstr = '\n'.join(diffs) # "!" + diffs[0] + "!" #''.join(d.compare(actual, test["expected"]))
-                    print(dstr)
+                    diffs = list(difflib.unified_diff(actual.splitlines(keepends=True), expected.splitlines(keepends=True)))
+                    failures.append('\n'.join(diffs))
+    if (len(failures) > 0):
+        print("FAILURES DETECTED")
+        for f in failures:
+            print(f)
+    else:
+        print("ALL TESTS SUCCEEDED")
                 
     if (output_tests):
         with open('test_output.json', 'w') as out_file:
